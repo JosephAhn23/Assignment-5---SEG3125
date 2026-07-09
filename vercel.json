@@ -1,0 +1,12 @@
+{
+  "cleanUrls": true,
+  "redirects": [
+    { "source": "/baseline-supply", "destination": "/ecommerce", "permanent": true },
+    { "source": "/a4", "destination": "/ecommerce", "permanent": true },
+    { "source": "/a4/:path*", "destination": "/ecommerce", "permanent": true },
+    { "source": "/a5", "destination": "/hoops-analytics", "permanent": true },
+    { "source": "/dashboard", "destination": "/hoops-analytics", "permanent": true },
+    { "source": "/nba-dashboard", "destination": "/hoops-analytics", "permanent": true },
+    { "source": "/a5.html", "destination": "/hoops-analytics", "permanent": true }
+  ]
+}

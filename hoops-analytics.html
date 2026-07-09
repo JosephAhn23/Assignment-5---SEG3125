@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hoops Analytics — NBA Player Stats Dashboard</title>
+  <meta name="description" content="Bilingual NBA player performance dashboard with scoring trends, league comparisons and season stat summaries." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --background:#1a1d24;
+      --foreground:#eceef2;
+      --card:#22262f;
+      --border:rgba(255,255,255,0.09);
+      --primary:#e8a838;
+      --primary-fg:#1a1408;
+      --secondary:#2c3140;
+      --secondary-fg:#eceef2;
+      --muted-fg:#9aa3b5;
+      --gradient-card:linear-gradient(160deg,#242833,#1f232c);
+      --shadow-card:0 8px 24px -14px rgba(0,0,0,0.6);
+      --glow:0 0 16px -6px rgba(232,168,56,0.45);
+      --radius:0.5rem;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{
+      font-family:"Barlow",system-ui,sans-serif;
+      background:var(--background);
+      color:var(--foreground);
+      min-height:100vh;
+      padding:8px 10px;
+      font-size:12px;
+    }
+    h1,h2{font-family:"Barlow Condensed","Arial Narrow",sans-serif;letter-spacing:0.01em;}
+    .wrap{max-width:72rem;margin:0 auto;display:flex;flex-direction:column;gap:6px;}
+    header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin-bottom:2px;}
+    h1{font-size:1.35rem;font-weight:700;text-transform:uppercase;}
+    .subtitle{margin-top:1px;font-size:11px;color:var(--muted-fg);}
+    .subtitle a,.source a{color:var(--primary);}
+    .controls{display:flex;flex-wrap:wrap;align-items:center;gap:4px;}
+    label.ctrl{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--muted-fg);}
+    select{
+      border-radius:var(--radius);
+      border:1px solid rgba(255,255,255,0.12);
+      background:var(--secondary);
+      color:var(--secondary-fg);
+      padding:3px 6px;
+      font-size:11px;
+      font-weight:500;
+      outline:none;
+    }
+    select:focus{box-shadow:0 0 0 1px var(--primary);}
+    .lang{display:flex;overflow:hidden;border-radius:var(--radius);border:1px solid var(--border);}
+    .lang button{
+      padding:3px 6px;
+      font-size:10px;
+      font-weight:700;
+      text-transform:uppercase;
+      border:none;
+      cursor:pointer;
+      background:var(--secondary);
+      color:var(--muted-fg);
+    }
+    .lang button.on{background:var(--primary);color:var(--primary-fg);box-shadow:var(--glow);}
+    .grid{display:grid;gap:6px;}
+    @media (min-width:1024px){.grid{grid-template-columns:1fr 1fr;}}
+    .card{
+      background:var(--gradient-card);
+      border:1px solid var(--border);
+      border-radius:calc(var(--radius)+2px);
+      padding:8px;
+      box-shadow:var(--shadow-card);
+    }
+    .card h2{font-size:0.9rem;font-weight:600;text-transform:uppercase;margin-bottom:2px;}
+    .card p{margin:0 0 4px;font-size:11px;color:var(--muted-fg);}
+    .chart-box{height:170px;position:relative;}
+    .table-card{overflow:hidden;}
+    .table-head{
+      display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px;
+      border-bottom:1px solid var(--border);padding:6px 8px;
+    }
+    .table-head h2{font-size:1rem;font-weight:600;text-transform:uppercase;}
+    .table-head p{margin-top:1px;font-size:11px;color:var(--muted-fg);}
+    .table-head .name{font-weight:500;color:var(--primary);}
+    .badge{
+      border-radius:9999px;border:1px solid var(--border);background:var(--secondary);
+      padding:2px 6px;font-size:10px;font-weight:500;color:var(--secondary-fg);
+    }
+    .table-wrap{overflow-x:auto;}
+    table{width:100%;border-collapse:collapse;font-size:11px;}
+    thead tr{border-bottom:1px solid var(--border);text-align:left;}
+    th{
+      padding:4px 8px;font-size:10px;font-weight:600;
+      text-transform:uppercase;letter-spacing:0.03em;color:var(--muted-fg);
+    }
+    th.num{text-align:right;}
+    td{padding:4px 8px;border-bottom:1px solid rgba(255,255,255,0.06);}
+    tr:last-child td{border-bottom:none;}
+    tr:hover td{background:rgba(48,54,72,0.6);}
+    td.num{text-align:right;font-variant-numeric:tabular-nums;}
+    td.ppg{font-weight:600;color:var(--primary);}
+    .team{
+      display:inline-block;border-radius:0.25rem;background:var(--secondary);
+      padding:1px 4px;font-size:10px;font-weight:600;color:var(--secondary-fg);
+    }
+    tfoot tr{border-top:1px solid var(--border);background:rgba(44,49,64,0.4);}
+    tfoot td{font-size:10px;text-transform:uppercase;letter-spacing:0.03em;color:var(--muted-fg);font-weight:600;}
+    tfoot td.ppg{font-weight:700;color:var(--primary);}
+    footer{margin-top:4px;font-size:10px;}
+    footer a{color:var(--muted-fg);}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <div>
+        <h1 id="title">Hoops Analytics</h1>
+        <p class="subtitle" id="subtitle">Player performance dashboard · 2019–2024</p>
+        <p class="subtitle source" id="source-note"></p>
+      </div>
+      <div class="controls">
+        <label class="ctrl">
+          <span id="lbl-player">Player</span>
+          <select id="player-select"></select>
+        </label>
+        <div class="lang">
+          <button type="button" id="btn-en" class="on" onclick="setLang('en')">EN</button>
+          <button type="button" id="btn-fr" onclick="setLang('fr')">FR</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <h2 id="line-title">Scoring Trend</h2>
+        <p id="line-desc">Points per game by season · <span id="line-player-name"></span></p>
+        <div class="chart-box"><canvas id="line-chart"></canvas></div>
+      </section>
+      <section class="card">
+        <h2 id="bar-title">League Comparison</h2>
+        <p id="bar-desc">2023-24 points per game, all players</p>
+        <div class="chart-box"><canvas id="bar-chart"></canvas></div>
+      </section>
+    </div>
+
+    <section class="card table-card">
+      <div class="table-head">
+        <div>
+          <h2 id="table-title">Season Stats Summary</h2>
+          <p><span id="table-desc">Full per-season averages for</span> <span class="name" id="table-player-name"></span></p>
+        </div>
+        <span class="badge" id="player-badge"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th id="th-season">Season</th>
+              <th id="th-team">Team</th>
+              <th class="num" id="th-ppg">PPG</th>
+              <th class="num" id="th-rpg">RPG</th>
+              <th class="num" id="th-apg">APG</th>
+              <th class="num" id="th-mpg">MPG</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2" id="career-label">5-season average</td>
+              <td class="num ppg" id="avg-ppg"></td>
+              <td class="num" id="avg-rpg"></td>
+              <td class="num" id="avg-apg"></td>
+              <td class="num" id="avg-mpg"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </section>
+
+    <footer><a href="index.html" id="back-link">back to portfolio</a></footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script>
+    var players=[
+      {
+        id:"lebron",name:"LeBron James",position:"SF",color:"#e8a838",
+        seasons:[
+          {season:"2019-20",team:"LAL",ppg:25.3,rpg:7.8,apg:10.2,mpg:34.6},
+          {season:"2020-21",team:"LAL",ppg:25.0,rpg:7.7,apg:7.8,mpg:33.4},
+          {season:"2021-22",team:"LAL",ppg:30.3,rpg:8.2,apg:6.2,mpg:37.2},
+          {season:"2022-23",team:"LAL",ppg:28.9,rpg:8.3,apg:6.8,mpg:35.5},
+          {season:"2023-24",team:"LAL",ppg:25.7,rpg:7.3,apg:8.3,mpg:35.3}
+        ]
+      },
+      {
+        id:"curry",name:"Stephen Curry",position:"PG",color:"#5aadcc",
+        seasons:[
+          {season:"2019-20",team:"GSW",ppg:20.8,rpg:5.2,apg:6.6,mpg:27.8},
+          {season:"2020-21",team:"GSW",ppg:32.0,rpg:5.5,apg:5.8,mpg:34.2},
+          {season:"2021-22",team:"GSW",ppg:25.5,rpg:5.2,apg:6.3,mpg:34.5},
+          {season:"2022-23",team:"GSW",ppg:29.4,rpg:6.1,apg:6.3,mpg:34.7},
+          {season:"2023-24",team:"GSW",ppg:26.4,rpg:4.5,apg:5.1,mpg:32.7}
+        ]
+      },
+      {
+        id:"giannis",name:"Giannis Antetokounmpo",position:"PF",color:"#52b886",
+        seasons:[
+          {season:"2019-20",team:"MIL",ppg:29.5,rpg:13.6,apg:5.6,mpg:30.4},
+          {season:"2020-21",team:"MIL",ppg:28.1,rpg:11.0,apg:5.9,mpg:33.0},
+          {season:"2021-22",team:"MIL",ppg:29.9,rpg:11.6,apg:5.8,mpg:32.9},
+          {season:"2022-23",team:"MIL",ppg:31.1,rpg:11.8,apg:5.7,mpg:32.1},
+          {season:"2023-24",team:"MIL",ppg:30.4,rpg:11.5,apg:6.5,mpg:35.2}
+        ]
+      },
+      {
+        id:"doncic",name:"Luka Dončić",position:"PG",color:"#b070c8",
+        seasons:[
+          {season:"2019-20",team:"DAL",ppg:28.8,rpg:9.4,apg:8.8,mpg:33.6},
+          {season:"2020-21",team:"DAL",ppg:27.7,rpg:8.0,apg:8.6,mpg:34.3},
+          {season:"2021-22",team:"DAL",ppg:28.4,rpg:9.1,apg:8.7,mpg:35.4},
+          {season:"2022-23",team:"DAL",ppg:32.4,rpg:8.6,apg:8.0,mpg:36.2},
+          {season:"2023-24",team:"DAL",ppg:33.9,rpg:9.2,apg:9.8,mpg:37.5}
+        ]
+      }
+    ];
+
+    var translations={
+      en:{
+        title:"Hoops Analytics",
+        subtitle:"Player performance dashboard · 2019–2024",
+        lineChartTitle:"Scoring Trend",
+        lineChartDesc:"Points per game by season",
+        barChartTitle:"League Comparison",
+        barChartDesc:"2023-24 points per game, all players",
+        tableTitle:"Season Stats Summary",
+        tableDesc:"Full per-season averages for",
+        selectPlayer:"Player",
+        season:"Season",team:"Team",ppg:"PPG",rpg:"RPG",apg:"APG",mpg:"MPG",
+        career:"5-season average",
+        back:"back to portfolio",
+        source:"Data source:",
+        sourceNba:"nba.com/stats/leaders",
+        sourceBref:"basketball-reference.com"
+      },
+      fr:{
+        title:"Hoops Analytics",
+        subtitle:"Tableau de bord des performances · 2019–2024",
+        lineChartTitle:"Tendance au scoring",
+        lineChartDesc:"Points par match par saison",
+        barChartTitle:"Comparaison de la ligue",
+        barChartDesc:"Points par match 2023-24, tous les joueurs",
+        tableTitle:"Résumé des statistiques",
+        tableDesc:"Moyennes complètes par saison pour",
+        selectPlayer:"Joueur",
+        season:"Saison",team:"Équipe",ppg:"PTS",rpg:"REB",apg:"AST",mpg:"MIN",
+        career:"Moyenne sur 5 saisons",
+        back:"retour au portfolio",
+        source:"Source des données:",
+        sourceNba:"nba.com/stats/leaders",
+        sourceBref:"basketball-reference.com"
+      }
+    };
+
+    var lang="en";
+    var playerId=players[0].id;
+    var lineChart=null;
+    var barChart=null;
+
+    function t(){return translations[lang];}
+    function fmt(n){return n.toFixed(1);}
+    function getPlayer(){
+      for(var i=0;i<players.length;i++){
+        if(players[i].id===playerId)return players[i];
+      }
+      return players[0];
+    }
+    function avg(player,key){
+      var sum=0;
+      for(var i=0;i<player.seasons.length;i++)sum+=player.seasons[i][key];
+      return sum/player.seasons.length;
+    }
+    function axisStyle(){
+      return{
+        grid:{color:"rgba(255,255,255,0.09)",drawBorder:false},
+        ticks:{color:"#9aa3b5",font:{size:10}},
+        border:{display:false}
+      };
+    }
+
+    function fillPlayerSelect(){
+      var sel=document.getElementById("player-select");
+      sel.innerHTML="";
+      for(var i=0;i<players.length;i++){
+        var opt=document.createElement("option");
+        opt.value=players[i].id;
+        opt.textContent=players[i].name;
+        sel.appendChild(opt);
+      }
+      sel.value=playerId;
+    }
+
+    function renderTable(){
+      var player=getPlayer();
+      document.getElementById("table-player-name").textContent=player.name;
+      document.getElementById("player-badge").textContent=player.position+" · "+player.seasons[player.seasons.length-1].team;
+      var body=document.getElementById("table-body");
+      body.innerHTML="";
+      for(var i=0;i<player.seasons.length;i++){
+        var s=player.seasons[i];
+        var row=document.createElement("tr");
+        row.innerHTML=
+          "<td>"+s.season+"</td>"+
+          '<td><span class="team">'+s.team+"</span></td>"+
+          '<td class="num ppg">'+fmt(s.ppg)+"</td>"+
+          '<td class="num">'+fmt(s.rpg)+"</td>"+
+          '<td class="num">'+fmt(s.apg)+"</td>"+
+          '<td class="num" style="color:var(--muted-fg)">'+fmt(s.mpg)+"</td>";
+        body.appendChild(row);
+      }
+      document.getElementById("avg-ppg").textContent=fmt(avg(player,"ppg"));
+      document.getElementById("avg-rpg").textContent=fmt(avg(player,"rpg"));
+      document.getElementById("avg-apg").textContent=fmt(avg(player,"apg"));
+      document.getElementById("avg-mpg").textContent=fmt(avg(player,"mpg"));
+    }
+
+    function updateCharts(){
+      var player=getPlayer();
+      var tr=t();
+
+      if(lineChart)lineChart.destroy();
+      lineChart=new Chart(document.getElementById("line-chart"),{
+        type:"line",
+        data:{
+          labels:player.seasons.map(function(s){return s.season;}),
+          datasets:[{
+            label:tr.ppg,
+            data:player.seasons.map(function(s){return s.ppg;}),
+            borderColor:player.color,
+            backgroundColor:player.color,
+            borderWidth:2,
+            pointRadius:3,
+            pointHoverRadius:5,
+            tension:0.25
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{legend:{display:false}},
+          scales:{x:axisStyle(),y:axisStyle()}
+        }
+      });
+
+      var barData=players.map(function(p){
+        return{
+          name:p.name.split(" ").pop(),
+          ppg:p.seasons[p.seasons.length-1].ppg,
+          color:p.color,
+          active:p.id===player.id
+        };
+      });
+
+      if(barChart)barChart.destroy();
+      barChart=new Chart(document.getElementById("bar-chart"),{
+        type:"bar",
+        data:{
+          labels:barData.map(function(d){return d.name;}),
+          datasets:[{
+            label:tr.ppg,
+            data:barData.map(function(d){return d.ppg;}),
+            backgroundColor:barData.map(function(d){
+              if(!d.active)return d.color+"73";
+              return d.color;
+            }),
+            borderRadius:4
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          plugins:{legend:{display:false}},
+          scales:{
+            x:Object.assign({},axisStyle(),{grid:{display:false}}),
+            y:axisStyle()
+          }
+        }
+      });
+    }
+
+    function applyLabels(){
+      var tr=t();
+      var player=getPlayer();
+      document.documentElement.lang=lang;
+      document.getElementById("title").textContent=tr.title;
+      document.getElementById("subtitle").textContent=tr.subtitle;
+      document.getElementById("source-note").innerHTML=
+        tr.source+' <a href="https://www.nba.com/stats/leaders" target="_blank" rel="noopener">'+tr.sourceNba+'</a> · '+
+        '<a href="https://www.basketball-reference.com/leagues/NBA_2025_per_game.html" target="_blank" rel="noopener">'+tr.sourceBref+'</a>';
+      document.getElementById("lbl-player").textContent=tr.selectPlayer;
+      document.getElementById("line-title").textContent=tr.lineChartTitle;
+      document.getElementById("line-desc").innerHTML=tr.lineChartDesc+" · <span id=\"line-player-name\">"+player.name+"</span>";
+      document.getElementById("bar-title").textContent=tr.barChartTitle;
+      document.getElementById("bar-desc").textContent=tr.barChartDesc;
+      document.getElementById("table-title").textContent=tr.tableTitle;
+      document.getElementById("table-desc").textContent=tr.tableDesc;
+      document.getElementById("th-season").textContent=tr.season;
+      document.getElementById("th-team").textContent=tr.team;
+      document.getElementById("th-ppg").textContent=tr.ppg;
+      document.getElementById("th-rpg").textContent=tr.rpg;
+      document.getElementById("th-apg").textContent=tr.apg;
+      document.getElementById("th-mpg").textContent=tr.mpg;
+      document.getElementById("career-label").textContent=tr.career;
+      document.getElementById("back-link").textContent=tr.back;
+      document.getElementById("btn-en").className=lang==="en"?"on":"";
+      document.getElementById("btn-fr").className=lang==="fr"?"on":"";
+    }
+
+    function refresh(){
+      applyLabels();
+      renderTable();
+      updateCharts();
+    }
+
+    function setLang(next){
+      lang=next;
+      refresh();
+    }
+
+    document.getElementById("player-select").addEventListener("change",function(e){
+      playerId=e.target.value;
+      refresh();
+    });
+
+    fillPlayerSelect();
+    refresh();
+  </script>
+</body>
+</html>
